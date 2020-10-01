@@ -1,0 +1,13 @@
+[Unit]
+Description=Keepalived instance %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Read configuration variable file if it is present
+ExecStart=/usr/sbin/keepalived -nlf /etc/keepalived/%i/keepalived.conf -p /run/keepalived.%i.pid -r /run/keepalived.%i.vrrp.pid -c /run/keepalived.%i.chechers.pid
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

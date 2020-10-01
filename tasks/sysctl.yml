@@ -1,0 +1,8 @@
+-   name: set sysctl variables
+    when: lb_cluster_do_sysctl|bool
+    sysctl:
+        name: "{{item.name}}"
+        value: "{{item.value}}"
+        sysctl_set: true
+        sysctl_file: "/etc/sysctl.d/{{item.file}}"
+    loop: "{{lb_cluster_sysctl_vars}}"

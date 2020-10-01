@@ -1,0 +1,67 @@
+-   name: load ip_vs module
+    modprobe:
+        name: ip_vs
+
+-   name: ip_vs in /etc/modules
+    lineinfile:
+        line: ip_vs
+        dest: /etc/modules
+
+-   name: set sysctl variables
+    when: lb_cluster_do_sysctl|bool
+    import_tasks: sysctl.yml
+
+-   name: install keepalived
+    apt:
+        name: keepalived
+
+-   name: /etc/keepalived/
+    file:
+        path: /etc/keepalived/
+        state: directory
+        mode: 0700
+
+-   name: /etc/systemd/system/keepalived@.service
+    template:
+        src: keepalived@.service
+        dest: /etc/systemd/system/keepalived@.service
+    notify: systemctl daemon-reload
+
+-   name: /etc/keepalive/{{item.name}}
+    file:
+        path: "/etc/keepalived/{{item.name}}/"
+        state: directory
+    loop: "{{lb_cluster_instances}}"
+
+-   name: /etc/keepalive/include
+    file:
+        path: "/etc/keepalived/include/"
+        state: directory
+
+-   name: template generated real servers configurations
+    template:
+        src: keepalived-realserver.conf
+        dest: "/etc/keepalived/include/{{item.name}}"
+    loop: "{{lb_cluster_realservers}}"
+    notify: reload keepalived (all)
+
+-   name: keepalived generated instances configuration
+    vars:
+        item_default_priority: "{{ ((loop_index + lb_cluster_nodes.index(inventory_hostname)) % lb_cluster_nodes|length) + 101}}"
+    template:
+        src: keepalived.conf
+        dest: "/etc/keepalived/{{item.name}}/keepalived.conf"
+    loop: "{{lb_cluster_instances}}"
+    loop_control:
+        index_var: loop_index
+    register: out_keepalived_config
+    notify: reload keepalived
+
+-   meta: flush_handlers
+
+-   name: start, enable keepalived@.service instances
+    service:
+        name: keepalived@{{item.name}}.service
+        state: started
+        enabled: yes
+    loop: "{{lb_cluster_instances}}"

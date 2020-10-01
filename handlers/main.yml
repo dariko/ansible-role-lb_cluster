@@ -1,0 +1,14 @@
+-   name: systemctl daemon-reload
+    shell: systemctl daemon-reload
+
+-   name: reload keepalived
+    service:
+        name: "keepalived@{{item.item.name}}"
+        state: reloaded
+    loop: "{{out_keepalived_config.results|selectattr('changed', 'equalto', True)|list}}"
+
+-   name: reload keepalived (all)
+    service:
+        name: "keepalived@{{item.name}}"
+        state: reloaded
+    loop: "{{lb_cluster_instances}}"
